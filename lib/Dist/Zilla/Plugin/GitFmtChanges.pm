@@ -1,6 +1,6 @@
-package Dist::Zilla::Plugin::ChangelogFromGit;
+package Dist::Zilla::Plugin::GitFmtChanges;
 
-# ABSTRACT: Build a Changes file from a project's git log.
+# ABSTRACT: Build a Changes file from a project's git log using git log format.
 
 use Moose;
 use Moose::Autobox;
@@ -161,13 +161,13 @@ __END__
 
 =head1 NAME
 
-Dist::Zilla::Plugin::ChangelogFromGit - build CHANGES from git commits and tags
+Dist::Zilla::Plugin::GitFmtChanges - build CHANGES from git commits and tags
 
 =head1 SYNOPSIS
 
 In your dist.ini:
 
-	[ChangelogFromGit]
+	[GitFmtChanges]
 	max_age     = 365
 	tag_regexp  = ^v\d+_\d+$
 	file_name   = CHANGES
@@ -224,21 +224,15 @@ width.  If 74 is to short, one might specify:
 
 =back
 
-=head1 Subversion and CVS
-
-This plugin is almost entirely a copy-and-paste port of a command-line
-tool I wrote a while ago.  I also have tools to generate change logs
-from CVS and Subversion commits.  If anyone is interested, plugins for
-these other version control systems should be about an hour's work
-apiece.
-
 =head1 AUTHOR
 
-Rocco Caputo <rcaputo@cpan.org>
+Kathryn Andersen <perlkat@katspace.org>
 
 =head1 COPYRIGHT AND LICENSE
 
-This software is copyright (c) 2010 by Rocco Caputo.
+This is based on Dist::Zilla::Plugin::ChangelogFromGit by Rocco Caputo.
+
+This software is copyright (c) 2010 by Kathryn Andersen.
 
 This is free software; you may redistribute it and/or modify it under
 the same terms as the Perl 5 programming language itself.

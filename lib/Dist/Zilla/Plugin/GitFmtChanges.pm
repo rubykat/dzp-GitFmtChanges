@@ -1,12 +1,84 @@
 package Dist::Zilla::Plugin::GitFmtChanges;
+=head1 NAME
 
-# ABSTRACT: Build a Changes file from a project's git log using git log format.
+Dist::Zilla::Plugin::GitFmtChanges - Build CHANGES file from a project's git log using git log format.
+
+=head1 SYNOPSIS
+
+In your dist.ini:
+
+	[GitFmtChanges]
+	max_age     = 365
+	tag_regexp  = ^v\d+\.\d+$
+	file_name   = CHANGES
+	log_format  = medium
+
+The example values are the defaults.
+
+=head1 DESCRIPTION
+
+This Dist::Zilla plugin writes a CHANGES file that contains formatted
+commit information from recent git logs.  The CHANGES file is formatted
+using the "--format" option of the git log command.  This makes it easy
+to make the CHANGES file look the way you want it to.
+
+This is based on Dist::Zilla::Plugin::ChangelogFromGit.
+
+This plugin has the following configuration variables:
+
+=over 2
+
+=item * max_age
+
+It may be impractical to include the full change log in a mature
+project's distribution.  "max_age" limits the changes to the most
+recent ones within a number of days.  The default is about one year.
+
+Include two years of changes:
+
+	max_age = 730
+
+=item * tag_regexp
+
+This plugin breaks the changelog into sections delineated by releases,
+which are defined by release tags.  "tag_regexp" may be used to focus
+only on those tags that follow a particular release tagging format.
+Some of the author's repositories contain multiple projects, each with
+their own specific release tag formats, so that changelogs can focus
+on particular projects' tags.  For instance, POE::Test::Loops' release
+tags may be specified as:
+
+	tag_regexp = ^ptl-
+
+=item * file_name
+
+Everyone has a preference for their change logs.  If you prefer
+lowercase in your change log file names, you might specify:
+
+	file_name = Changes
+
+=item * log_format
+
+Define the format used for the change listing in the CHANGES file.
+This option is passed through to the B<git log> command.
+One can use the predefined formats, such as 'oneline', 'short', 'medium' etc.
+
+	log_format = short
+
+Or one can exersize more control by using the "format" formatting.
+The following example will give the author and date, a newline, and
+the "subject" of the change.
+
+	log_format = %ai%n%s
+
+=back
+
+=cut
 
 use Moose;
 use Moose::Autobox;
 with 'Dist::Zilla::Role::FileGatherer';
 
-use Text::Wrap qw(wrap fill $columns $huge);
 use POSIX qw(strftime);
 
 has max_age => (
@@ -18,19 +90,13 @@ has max_age => (
 has tag_regexp => (
 	is      => 'ro',
 	isa     => 'Str',
-	default => '^v\\d+_\\d+$',
+	default => '^v\\d+\.\\d+$',
 );
 
 has file_name => (
 	is      => 'ro',
 	isa     => 'Str',
 	default => 'CHANGES',
-);
-
-has wrap_column => (
-	is      => 'ro',
-	isa     => 'Int',
-	default => 74,
 );
 
 has log_format => (
@@ -46,9 +112,6 @@ sub gather_files {
 		"%FT %T +0000", gmtime(time() - $self->max_age() * 86400)
 	);
 
-	$Text::Wrap::huge    = "wrap";
-	$Text::Wrap::columns = $self->wrap_column();
-
 	chomp(my @tags = `git tag`);
 
 	{
@@ -62,7 +125,7 @@ sub gather_files {
 			}
 
 			my $commit =
-				`git show $tags[$i] --pretty='tformat:(((((%ci)))))' | grep '(((((' | head -1`;
+				`git show $tags[$i] --format='tformat:(((((%ci)))))' | grep '(((((' | head -1`;
 			die $commit unless $commit =~ /\(\(\(\(\((.+?)\)\)\)\)\)/;
 
 			$tags[$i] = {
@@ -90,17 +153,6 @@ sub gather_files {
 				or die $!;
 			local $/ = "\n\n";
 			while (<$commit>) {
-##				if (/^\S/) {
-##					s/^/  /mg;
-##					push @commit, $_;
-##					next;
-##				}
-##
-##				# Trim off identical leading whitespace.
-##				my ($whitespace) = /^(\s*)/;
-##				if (length $whitespace) {
-##					s/^$whitespace//mg;
-##				}
 
 				push @commit, $_;
 			}
@@ -113,11 +165,6 @@ sub gather_files {
 			{
 			    $tag_line = "$tags[$i]{tag} $1";
 			}
-##			$changelog .= (
-##				("=" x length($tag_line)) . "\n" .
-##				"$tag_line\n" .
-##				("=" x length($tag_line)) . "\n\n"
-##			);
 			$changelog .= (
 				"$tag_line\n" .
 				("-" x length($tag_line)) . "\n\n"
@@ -158,71 +205,6 @@ no Moose;
 1;
 
 __END__
-
-=head1 NAME
-
-Dist::Zilla::Plugin::GitFmtChanges - build CHANGES from git commits and tags
-
-=head1 SYNOPSIS
-
-In your dist.ini:
-
-	[GitFmtChanges]
-	max_age     = 365
-	tag_regexp  = ^v\d+_\d+$
-	file_name   = CHANGES
-	wrap_column = 74
-
-The example values are the defaults.
-
-=head1 DESCRIPTION
-
-This Dist::Zilla plugin writes a CHANGES file that contains formatted
-commit information from recent git logs.
-
-This plugin has the following configuration variables:
-
-=over 2
-
-=item * max_age
-
-It may be impractical to include the full change log in a mature
-project's distribution.  "max_age" limits the changes to the most
-recent ones within a number of days.  The default is about one year.
-
-Include two years of changes:
-
-	max_age = 730
-
-=item * tag_regexp
-
-This plugin breaks the changelog into sections delineated by releases,
-which are defined by release tags.  "tag_regexp" may be used to focus
-only on those tags that follow a particular release tagging format.
-Some of the author's repositories contain multiple projects, each with
-their own specific release tag formats, so that changelogs can focus
-on particular projects' tags.  For instance, POE::Test::Loops' release
-tags may be specified as:
-
-	tag_regexp = ^ptl-
-
-=item * file_name
-
-Everyone has a preference for their change logs.  If you prefer
-lowercase in your change log file names, you migt specify:
-
-	file_name = Changes
-
-=item * wrap_column
-
-Changes from different contributors tend to vary in format.  This
-plugin uses Text::Wrap to normalize the width of commit messages.  The
-"wrap_column" parameter may be used to alter the reformatted line
-width.  If 74 is to short, one might specify:
-
-	wrap_column = 78
-
-=back
 
 =head1 AUTHOR
 

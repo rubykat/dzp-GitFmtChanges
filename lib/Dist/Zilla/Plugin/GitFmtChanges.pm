@@ -80,6 +80,7 @@ use Moose::Autobox;
 with 'Dist::Zilla::Role::FileGatherer';
 
 use POSIX qw(strftime);
+use Date::Simple qw(date today);
 
 has max_age => (
 	is      => 'ro',
@@ -161,9 +162,13 @@ sub gather_files {
 			next unless @commit;
 
 			my $tag_line = "$tags[$i]{time} $tags[$i]{tag}";
+			# if this is the HEAD then take the version from
+			# the version, and the date as today
 			if ($tags[$i]{tag} eq 'HEAD')
 			{
-			    $tag_line = $self->zilla->version;
+			    my $today = today();
+			    my $ver = $self->zilla->version;
+			    $tag_line = "v$ver $today";
 			}
 			elsif ($tags[$i]{time} =~ /(\d+-\d+-\d+)/) # only date
 			{

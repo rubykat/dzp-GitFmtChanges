@@ -33,6 +33,12 @@ has wrap_column => (
 	default => 74,
 );
 
+has log_format => (
+	is      => 'ro',
+	isa     => 'Str',
+	default => 'medium',
+);
+
 sub gather_files {
 	my ($self, $arg) = @_;
 
@@ -73,46 +79,48 @@ sub gather_files {
 	my $changelog = "";
 
 	{
+		my $log_format = $self->log_format();
 		my $i = @tags;
 		while ($i--) {
 			last if $tags[$i]{time} lt $earliest_date;
 
 			my @commit;
 
-			open my $commit, "-|", "git log $tags[$i-1]{tag}..$tags[$i]{tag} ."
+			open my $commit, "-|", "git log --format='$log_format' $tags[$i-1]{tag}..$tags[$i]{tag} ."
 				or die $!;
 			local $/ = "\n\n";
 			while (<$commit>) {
-				if (/^\S/) {
-					s/^/  /mg;
-					push @commit, $_;
-					next;
-				}
+##				if (/^\S/) {
+##					s/^/  /mg;
+##					push @commit, $_;
+##					next;
+##				}
+##
+##				# Trim off identical leading whitespace.
+##				my ($whitespace) = /^(\s*)/;
+##				if (length $whitespace) {
+##					s/^$whitespace//mg;
+##				}
 
-				# Trim off identical leading whitespace.
-				my ($whitespace) = /^(\s*)/;
-				if (length $whitespace) {
-					s/^$whitespace//mg;
-				}
-
-				# Re-flow the paragraph if it isn't indented from the norm.
-				# This should preserve indented quoted text, wiki-style.
-				unless (/^\s/) {
-					push @commit, fill("    ", "    ", $_), "\n\n";
-				}
-				else {
-					push @commit, $_;
-				}
+				push @commit, $_;
 			}
 
 			# Don't display the tag if there's nothing under it.
 			next unless @commit;
 
 			my $tag_line = "$tags[$i]{time} $tags[$i]{tag}";
+			if ($tags[$i]{time} =~ /(\d+-\d+-\d+)/) # only date
+			{
+			    $tag_line = "$tags[$i]{tag} $1";
+			}
+##			$changelog .= (
+##				("=" x length($tag_line)) . "\n" .
+##				"$tag_line\n" .
+##				("=" x length($tag_line)) . "\n\n"
+##			);
 			$changelog .= (
-				("=" x length($tag_line)) . "\n" .
 				"$tag_line\n" .
-				("=" x length($tag_line)) . "\n\n"
+				("-" x length($tag_line)) . "\n\n"
 			);
 
 			$changelog .= $_ foreach @commit;
@@ -123,10 +131,18 @@ sub gather_files {
 	$epilogue .= "s" unless $self->max_age() == 1;
 
 	$changelog .= (
+		"\n" .
 		("=" x length($epilogue)) . "\n" .
 		"$epilogue\n" .
 		("=" x length($epilogue)) . "\n"
 	);
+	my $dist_name = $self->zilla->name;
+	my $chlog_title = "Revision History for $dist_name";
+	my $prologue = (
+		"$chlog_title\n" .
+		("=" x length($chlog_title)) . "\n\n"
+	);
+	$changelog = $prologue . $changelog;
 
 	my $file = Dist::Zilla::File::InMemory->new({
 		content => $changelog,

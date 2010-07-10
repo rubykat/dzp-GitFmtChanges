@@ -161,12 +161,16 @@ sub gather_files {
 			next unless @commit;
 
 			my $tag_line = "$tags[$i]{time} $tags[$i]{tag}";
-			if ($tags[$i]{time} =~ /(\d+-\d+-\d+)/) # only date
+			if ($tags[$i]{tag} eq 'HEAD')
+			{
+			    $tag_line = $self->zilla->version;
+			}
+			elsif ($tags[$i]{time} =~ /(\d+-\d+-\d+)/) # only date
 			{
 			    $tag_line = "$tags[$i]{tag} $1";
 			}
 			$changelog .= (
-				"$tag_line\n" .
+				"\n$tag_line\n" .
 				("-" x length($tag_line)) . "\n\n"
 			);
 
@@ -187,7 +191,7 @@ sub gather_files {
 	my $chlog_title = "Revision History for $dist_name";
 	my $prologue = (
 		"$chlog_title\n" .
-		("=" x length($chlog_title)) . "\n\n"
+		("=" x length($chlog_title)) . "\n"
 	);
 	$changelog = $prologue . $changelog;
 

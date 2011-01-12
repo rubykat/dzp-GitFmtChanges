@@ -81,6 +81,7 @@ with 'Dist::Zilla::Role::FileGatherer';
 
 use POSIX qw(strftime);
 use Date::Simple qw(date today);
+use Git::Wrapper;
 
 has max_age => (
 	is      => 'ro',
@@ -106,6 +107,11 @@ has log_format => (
 	default => 'medium',
 );
 
+has git => (
+	is      =>'ro',
+	default => sub { Git::Wrapper->new('.') }
+);
+
 sub gather_files {
 	my ($self, $arg) = @_;
 
@@ -113,7 +119,7 @@ sub gather_files {
 		"%FT %T +0000", gmtime(time() - $self->max_age() * 86400)
 	);
 
-	chomp(my @tags = `git tag`);
+	my @tags = $self->git->tag;
 
 	{
 		my $tag_pattern = $self->tag_regexp();
@@ -125,8 +131,12 @@ sub gather_files {
 				next;
 			}
 
-			my $commit =
-				`git show $tags[$i] --format='tformat:(((((%ci)))))' | grep '(((((' | head -1`;
+			my @commit = $self->git->show(
+				{ format => 'tformat:(((((%ci)))))' },
+				$tags[$i]
+			);
+			my ($commit) = grep { m#\(\(\(\(\(# } @commit;
+
 			die $commit unless $commit =~ /\(\(\(\(\((.+?)\)\)\)\)\)/;
 
 			$tags[$i] = {
@@ -150,7 +160,7 @@ sub gather_files {
 
 			my @commit;
 
-			open my $commit, "-|", "git log --format='$log_format' $tags[$i-1]{tag}..$tags[$i]{tag} ."
+			open my $commit, "-|", "git log --format=\"$log_format\" $tags[$i-1]{tag}..$tags[$i]{tag} ."
 				or die $!;
 			local $/ = "\n\n";
 			while (<$commit>) {

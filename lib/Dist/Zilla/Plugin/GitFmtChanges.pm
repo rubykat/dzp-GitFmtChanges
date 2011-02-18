@@ -162,11 +162,8 @@ sub gather_files {
 
 			open my $commit, "-|", "git log --format=\"$log_format\" $tags[$i-1]{tag}..$tags[$i]{tag} ."
 				or die $!;
-			local $/ = "\n\n";
-			while (<$commit>) {
 
-				push @commit, $_;
-			}
+			{ local $/ = "\n\n" ; @commit = <$commit> };
 
 			# Don't display the tag if there's nothing under it.
 			next unless @commit;

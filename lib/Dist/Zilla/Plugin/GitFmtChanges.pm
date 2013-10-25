@@ -156,11 +156,18 @@ sub gather_files {
 		my $log_format = $self->log_format();
 		my $i = @tags;
 		while ($i--) {
-			last if $tags[$i]{time} lt $earliest_date;
+			my $tag_time = $tags[$i]{time};
+			last if $tag_time lt $earliest_date;
 
 			my @commit;
+			my $prev_tag = $tags[$i-1]{tag};
+			my $curr_tag = $tags[$i]{tag};
 
-			open my $commit, "-|", "git log --format=\"$log_format\" $tags[$i-1]{tag}..$tags[$i]{tag} ."
+			# Handle initial releases properly
+			$prev_tag = 'HEAD~1'
+				if (!$i && $curr_tag eq 'HEAD' && @tags == 1);
+
+			open my $commit, "-|", "git log --format=\"$log_format\" $prev_tag..$curr_tag ."
 				or die $!;
 
 			{ local $/ = "\n\n" ; @commit = <$commit> };
@@ -168,18 +175,18 @@ sub gather_files {
 			# Don't display the tag if there's nothing under it.
 			next unless @commit;
 
-			my $tag_line = "$tags[$i]{time} $tags[$i]{tag}";
+			my $tag_line = "$tag_time $curr_tag";
 			# if this is the HEAD then take the version from
 			# the version, and the date as today
-			if ($tags[$i]{tag} eq 'HEAD')
+			if ($curr_tag eq 'HEAD')
 			{
 			    my $today = today();
 			    my $ver = $self->zilla->version;
 			    $tag_line = "v$ver $today";
 			}
-			elsif ($tags[$i]{time} =~ /(\d+-\d+-\d+)/) # only date
+			elsif ($tag_time =~ /(\d+-\d+-\d+)/) # only date
 			{
-			    $tag_line = "$tags[$i]{tag} $1";
+			    $tag_line = "$curr_tag $1";
 			}
 			$changelog .= (
 				"\n$tag_line\n" .

@@ -76,7 +76,6 @@ the "subject" of the change.
 =cut
 
 use Moose;
-use Moose::Autobox;
 with 'Dist::Zilla::Role::FileGatherer';
 
 use POSIX qw(strftime);

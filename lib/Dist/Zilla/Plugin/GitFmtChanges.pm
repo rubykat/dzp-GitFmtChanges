@@ -75,6 +75,7 @@ the "subject" of the change.
 
 =cut
 
+require 5.6.0;
 use Moose;
 with 'Dist::Zilla::Role::FileGatherer';
 

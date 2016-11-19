@@ -1,4 +1,5 @@
 package Dist::Zilla::Plugin::GitFmtChanges;
+
 =head1 NAME
 
 Dist::Zilla::Plugin::GitFmtChanges - Build CHANGES file from a project's git log using git log format.
